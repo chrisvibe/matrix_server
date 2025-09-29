@@ -53,6 +53,7 @@ services:
       - "8448:8448"  # Federation port
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       synapse:
         condition: service_healthy
@@ -67,15 +68,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    restart: unless-stopped
-    command: tunnel run
-    networks:
-      - net
-    environment:
-      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
 
 networks:
   net:
