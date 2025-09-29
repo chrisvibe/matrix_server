@@ -77,6 +77,8 @@ user_directory:
 # Publish user presence/profile by default
 presence:
   enabled: true
+
+encryption_enabled_by_default_for_room_type: all
 ```
 
 ### 4. Generate Nginx and Element configurations

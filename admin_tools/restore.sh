@@ -85,8 +85,10 @@ docker compose exec -T db psql -U synapse -d postgres -c "CREATE DATABASE synaps
     || error "Failed to create database"
 
 # Restore data
-gunzip -c "$DB_BACKUP" | docker compose exec -T db psql -U synapse -d synapse \
+log "Restoring database (logging to restore_${BACKUP_DATE}.log)..."
+gunzip -c "$DB_BACKUP" | docker compose exec -T db psql -U synapse -d synapse > "$BACKUP_DIR/restore_${BACKUP_DATE}.log" 2>&1 \
     || error "Failed to restore database"
+log "Database restore complete. Check $BACKUP_DIR/restore_${BACKUP_DATE}.log for details."
 
 log "Database restored"
 
