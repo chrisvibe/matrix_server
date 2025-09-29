@@ -84,19 +84,28 @@ Cloudflare handles SSL certificates automatically.
 2. Go to **Zero Trust** → **Networks** → **Tunnels**
 3. Create a new tunnel with the docker option and copy the tunnel token
 4. Add the token to your `.env` file as `CLOUDFLARE_TUNNEL_TOKEN`
-5. Configure **two public hostnames** in the tunnel:
+5. Configure **three public hostnames** in the tunnel:
 
    **For federation (server-to-server communication):**
    - **Hostname**: `your-domain.com`
-   - **Path**: `/_matrix*`
+   - **Path**: `_matrix/federation*`
    - **Service**: `https://matrix-nginx:8448`
-   - **TLS Settings**: Enable "No TLS Verify" (self-signed cert between tunnel and nginx)
+   - **Additional Settings → TLS → No TLS Verify**: Enable (required for self-signed cert)
 
-   **For client traffic (Element web UI and API):**
+   **For federation key exchange:**
    - **Hostname**: `your-domain.com`
+   - **Path**: `_matrix/key*`
+   - **Service**: `https://matrix-nginx:8448`
+   - **Additional Settings → TLS → No TLS Verify**: Enable (required for self-signed cert)
+
+   **For everything else (Element UI, Client API, Admin API, .well-known):**
+   - **Hostname**: `your-domain.com`
+   - **Path**: `*` (catch-all - must be last in the list)
    - **Service**: `http://matrix-nginx:80`
 
-**Important for Federation**: The federation hostname configuration tells other Matrix servers how to connect to yours for server-to-server communication. Without this, you can only chat with users on your own server.
+**Important for Federation**: The federation routes must be separate from client routes. The `_matrix/federation*` and `_matrix/key*` paths handle server-to-server communication on port 8448, while client APIs (`/_matrix/client/*`) must go through port 80. Without proper federation routes, you can only chat with users on your own server.
+
+**Route Order Matters**: Cloudflare processes routes in order. Make sure the catch-all `*` route is last, otherwise it will intercept the federation routes.
 
 ### 6. Start the services
 
