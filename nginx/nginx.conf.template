@@ -13,6 +13,19 @@ server {
     real_ip_header CF-Connecting-IP;
     # CLOUDFLARE_IPS_PLACEHOLDER
     
+    # Matrix federation delegation - REQUIRED for Cloudflare Tunnel
+    location /.well-known/matrix/server {
+        return 200 '{"m.server": "SYNAPSE_SERVER_NAME:443"}';
+        add_header Content-Type application/json;
+        add_header Access-Control-Allow-Origin *;
+    }
+
+    location /.well-known/matrix/client {
+        return 200 '{"m.homeserver": {"base_url": "https://SYNAPSE_SERVER_NAME"}}';
+        add_header Content-Type application/json;
+        add_header Access-Control-Allow-Origin *;
+    }
+    
     # Root page - you can serve something else here
     location = / {
         return 200 "Welcome to SYNAPSE_SERVER_NAME";

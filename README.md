@@ -88,13 +88,13 @@ Cloudflare handles SSL certificates automatically.
 
    **For federation (server-to-server communication):**
    - **Hostname**: `your-domain.com`
-   - **Path**: `/_matrix/federation/*` and `/_matrix/key/*`
-   - **Service**: `https://nginx:8448`
+   - **Path**: `/_matrix*`
+   - **Service**: `https://matrix-nginx:8448`
    - **TLS Settings**: Enable "No TLS Verify" (self-signed cert between tunnel and nginx)
 
    **For client traffic (Element web UI and API):**
    - **Hostname**: `your-domain.com`
-   - **Service**: `http://nginx:80`
+   - **Service**: `http://matrix-nginx:80`
 
 **Important for Federation**: The federation hostname configuration tells other Matrix servers how to connect to yours for server-to-server communication. Without this, you can only chat with users on your own server.
 
