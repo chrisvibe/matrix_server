@@ -1,0 +1,11 @@
+.env
+
+# Generated configs
+nginx/conf.d/nginx.conf
+element/element-config.json
+
+# SSL certificates
+nginx/ssl/
+
+# Backups
+backups/
