@@ -65,6 +65,20 @@ media_retention:
 
 Note: By default, Synapse keeps all media forever. This setting only affects cached copies of media from other servers - the originals remain on the server where they were uploaded.
 
+**Optional but recommended:** Add media retention to prevent disk bloat. Add this at the bottom:
+
+```yaml
+# Make users discoverable in the user directory by default
+user_directory:
+  enabled: true
+  search_all_users: true  # Allow searching all users, not just room members
+  prefer_local_users: true  # Prioritize local users in search results
+
+# Publish user presence/profile by default
+presence:
+  enabled: true
+```
+
 ### 4. Generate Nginx and Element configurations
 
 ```bash
