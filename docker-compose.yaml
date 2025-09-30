@@ -79,6 +79,8 @@ networks:
 
 volumes:
   synapse_data:
+    external: true
     name: synapse_data
   synapse_db:
+    external: true
     name: synapse_db
