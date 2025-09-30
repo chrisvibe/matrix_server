@@ -1,6 +1,6 @@
 # Rate limiting zones
 limit_req_zone $binary_remote_addr zone=matrix_login:10m rate=5r/m;
-limit_req_zone $binary_remote_addr zone=matrix_register:10m rate=2r/m;
+limit_req_zone $binary_remote_addr zone=matrix_register:10m rate=15r/m;
 limit_req_zone $binary_remote_addr zone=matrix_general:10m rate=30r/s;
 
 # Client-facing server (port 80)
@@ -71,7 +71,7 @@ server {
     
     # Registration endpoint - very strict rate limiting
     location ~ ^/_matrix/client/(r0|v3)/register {
-        limit_req zone=matrix_register burst=5 nodelay;
+        limit_req zone=matrix_register burst=20 nodelay;
         limit_req_status 429;
         
         proxy_pass http://synapse:8008;
