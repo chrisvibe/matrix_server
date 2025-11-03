@@ -2,7 +2,16 @@
 
 # Matrix Server Backup Script
 
-set -e  # Exit on error
+# Load environment variables from parent directory .env
+ENV_FILE="$(dirname "$0")/../.env"
+if [ -f "$ENV_FILE" ]; then
+    set -a
+    source "$ENV_FILE"
+    set +a
+else
+    echo "Error: .env file not found at $ENV_FILE"
+    return 1
+fi
 
 # Change to project root directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,9 +19,9 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
 # Configuration
-BACKUP_DIR="${BACKUP_DIR:-./backups}"
+BACKUP_DIR=$BACKUP_DIR
 DATE=$(date +%Y%m%d_%H%M%S)
-KEEP_DAYS="${KEEP_DAYS:-30}"  # Keep backups for 30 days by default
+KEEP_DAYS="${KEEP_DAYS:-90}"  # Keep backups for 30 days by default
 
 # Colors
 GREEN='\033[0;32m'
@@ -33,7 +42,7 @@ log "Starting Matrix backup..."
 log "Backing up Synapse data volume..."
 docker run --rm \
     -v synapse_data:/data:ro \
-    -v "$(pwd)/$BACKUP_DIR":/backup \
+    -v "$BACKUP_DIR":/backup \
     alpine \
     tar czf "/backup/synapse_data_${DATE}.tar.gz" -C /data . \
     || error "Failed to backup Synapse data"

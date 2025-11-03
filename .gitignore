@@ -6,6 +6,3 @@ element/element-config.json
 
 # SSL certificates
 nginx/ssl/
-
-# Backups
-backups/

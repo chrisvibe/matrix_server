@@ -10,7 +10,7 @@ if [ -f "$ENV_FILE" ]; then
     set +a
 else
     echo "Error: .env file not found at $ENV_FILE"
-    exit 1
+    return 1
 fi
 
 # Configuration from environment
@@ -147,6 +147,47 @@ list_users() {
         python3 -m json.tool 2>/dev/null || echo "Install python3 for pretty JSON"
 }
 
+reset_password() {
+    local admin_token=${1:-$(load_token)}
+    local username=$2
+    local new_password=$3
+    local logout_devices=${4:-true}
+
+    [ -z "$admin_token" ] && { print_status $RED "No token. Run 'get_token' first"; return 1; }
+    [ -z "$username" ] && { print_status $RED "Usage: reset_password <username> [password] [logout=true]"; return 1; }
+
+    # Add @domain if not present
+    [[ ! "$username" =~ ^@ ]] && username="@${username}:${MATRIX_DOMAIN}"
+
+    # Prompt for password if not provided
+    if [ -z "$new_password" ]; then
+        echo -n "New password: "
+        read -s new_password
+        echo
+        echo -n "Confirm password: "
+        read -s confirm_password
+        echo
+        [ "$new_password" != "$confirm_password" ] && { print_status $RED "Passwords don't match"; return 1; }
+    fi
+
+    print_status $YELLOW "Resetting password for $username..."
+
+    local response=$(curl -s -X POST \
+        -H "Authorization: Bearer $admin_token" \
+        -H "Content-Type: application/json" \
+        -d "{\"new_password\": \"$new_password\", \"logout_devices\": $logout_devices}" \
+        "$MATRIX_SERVER/_synapse/admin/v1/reset_password/$username")
+
+    if echo "$response" | grep -q "{}"; then
+        print_status $GREEN "✅ Password reset for $username"
+        [ "$logout_devices" = "true" ] && print_status $GREEN "All devices logged out"
+    else
+        print_status $RED "❌ Failed to reset password"
+        echo "$response" | python3 -m json.tool 2>/dev/null
+        return 1
+    fi
+}
+
 show_config() {
     print_status $BLUE "Server: $MATRIX_SERVER"
     print_status $BLUE "Domain: $MATRIX_DOMAIN" 
@@ -179,11 +220,12 @@ run_cmd() {
         status) check_token_status || exit_code=1 ;;
         user) check_user "" "$2" || exit_code=1 ;;
         users) list_users "" "$2" || exit_code=1 ;;
+	reset*|pass*) reset_password "" "$2" "$3" "$4" || exit_code=1 ;;
         conf*) show_config ;;
         set_server) set_server "${@:2}" || exit_code=1 ;;
         help|h) 
             echo "Commands: login, logout, gen [uses] [days], status [active|expired], user [name], users [limit]"
-            echo "          expired, conf, set_server <url>, help, exit"
+            echo "          reset <user> [password,] expired, conf, set_server <url>, help, exit"
             echo
             echo "Quick start:"
             echo "  1. login             # Login as admin first"
@@ -219,7 +261,7 @@ interactive() {
 }
 
 # Main
-case "${1:-help}" in
+case "${1:-interactive}" in
     interactive|i) interactive "$2" ;;
     get_token|login) get_token "$2" "$3" ;;
     logout) clear_token ;;
@@ -228,12 +270,12 @@ case "${1:-help}" in
     expired) check_token_status "" "expired" ;;
     check_user) check_user "" "$2" ;;
     list_users) list_users "" "$2" ;;
+    reset_password) reset_password "" "$2" "$3" "$4" ;;
     *)
         echo "Matrix Admin CLI"
         echo "Usage: $0 interactive [password]"
         echo "   Or: $0 <command> [args]"
         echo
-        echo "Commands: login, logout, generate_reg_token, check_token_status, check_user, list_users"
-        echo "Tip: Use interactive mode!"
+        echo "Commands: login, logout, generate_reg_token, check_token_status, check_user, list_users, reset_password"
         ;;
 esac

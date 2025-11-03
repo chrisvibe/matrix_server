@@ -2,7 +2,16 @@
 
 # Matrix Server Restore Script
 
-set -e
+# Load environment variables from parent directory .env
+ENV_FILE="$(dirname "$0")/../.env"
+if [ -f "$ENV_FILE" ]; then
+    set -a
+    source "$ENV_FILE"
+    set +a
+else
+    echo "Error: .env file not found at $ENV_FILE"
+    return 1
+fi
 
 # Change to project root directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,7 +19,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
 # Configuration
-BACKUP_DIR="${BACKUP_DIR:-./backups}"
+BACKUP_DIR=$BACKUP_DIR
 
 # Colors
 GREEN='\033[0;32m'
@@ -64,7 +73,7 @@ docker compose down 2>/dev/null || true
 log "Restoring Synapse data volume..."
 docker run --rm \
     -v synapse_data:/data \
-    -v "$(pwd)/$BACKUP_DIR":/backup \
+    -v "$BACKUP_DIR":/backup \
     alpine sh -c "rm -rf /data/* && tar xzf /backup/synapse_data_${BACKUP_DATE}.tar.gz -C /data" \
     || error "Failed to restore Synapse data"
 
@@ -85,8 +94,10 @@ docker compose exec -T db psql -U synapse -d postgres -c "CREATE DATABASE synaps
     || error "Failed to create database"
 
 # Restore data
-gunzip -c "$DB_BACKUP" | docker compose exec -T db psql -U synapse -d synapse \
+log "Restoring database (logging to restore_${BACKUP_DATE}.log)..."
+gunzip -c "$DB_BACKUP" | docker compose exec -T db psql -U synapse -d synapse > "$BACKUP_DIR/restore_${BACKUP_DATE}.log" 2>&1 \
     || error "Failed to restore database"
+log "Database restore complete. Check $BACKUP_DIR/restore_${BACKUP_DATE}.log for details."
 
 log "Database restored"
 

@@ -53,6 +53,7 @@ services:
       - "8448:8448"  # Federation port
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       synapse:
         condition: service_healthy
@@ -68,15 +69,6 @@ services:
       timeout: 10s
       retries: 3
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    restart: unless-stopped
-    command: tunnel run
-    networks:
-      - net
-    environment:
-      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
-
 networks:
   net:
     driver: bridge
@@ -87,6 +79,8 @@ networks:
 
 volumes:
   synapse_data:
+    external: true
     name: synapse_data
   synapse_db:
+    external: true
     name: synapse_db

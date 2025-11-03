@@ -1,5 +1,3 @@
-COMPOSE_PROJECT_NAME=matrix
-
 # Synapse Configuration
 SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
 SYNAPSE_SERVER_NAME=CHANGE_TO_YOUR_SERVER_NAME
@@ -11,9 +9,6 @@ POSTGRES_USER=synapse
 POSTGRES_PASSWORD='CHANGE_THIS_TO_A_SECURE_PASSWORD' # fex openssl rand -base64 32
 POSTGRES_HOST=db
 POSTGRES_INITDB_ARGS="--lc-collate=C --lc-ctype=C --lc-messages=nb_NO.utf8 --lc-monetary=nb_NO.utf8 --lc-numeric=nb_NO.utf8 --lc-time=nb_NO.utf8 --encoding=UTF8" # change this to your preference
-
-# Cloudflare Tunnel Configuration
-CLOUDFLARE_TUNNEL_TOKEN='YOUR_CLOUDFLARE_TUNNEL_TOKEN_HERE'
 
 # Admin tools script
 MATRIX_DOMAIN=${SYNAPSE_SERVER_NAME}
