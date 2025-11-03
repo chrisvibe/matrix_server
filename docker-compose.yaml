@@ -49,8 +49,8 @@ services:
     image: nginx:alpine
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "8448:8448"  # Federation port
+      - "${LOCAL_IP}:80:80"
+      - "${LOCAL_IP}:8448:8448"  # Federation port
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/ssl:/etc/nginx/ssl:ro

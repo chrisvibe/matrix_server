@@ -3,7 +3,8 @@ limit_req_zone $binary_remote_addr zone=matrix_login:10m rate=5r/m;
 limit_req_zone $binary_remote_addr zone=matrix_register:10m rate=15r/m;
 limit_req_zone $binary_remote_addr zone=matrix_general:10m rate=30r/s;
 
-# Client-facing server (port 80)
+# Root domain server - ONLY for .well-known delegation
+# This allows user IDs like @user:SYNAPSE_SERVER_NAME while server runs on subdomain
 server {
     listen 80;
     listen [::]:80;
@@ -13,22 +14,44 @@ server {
     real_ip_header CF-Connecting-IP;
     # CLOUDFLARE_IPS_PLACEHOLDER
     
-    # Matrix federation delegation - REQUIRED for Cloudflare Tunnel
+    # Matrix federation delegation - tells other servers where to find us
     location /.well-known/matrix/server {
-        return 200 '{"m.server": "SYNAPSE_SERVER_NAME:443"}';
+        return 200 '{"m.server": "matrix.SYNAPSE_SERVER_NAME:443"}';
         add_header Content-Type application/json;
         add_header Access-Control-Allow-Origin *;
     }
 
     location /.well-known/matrix/client {
-        return 200 '{"m.homeserver": {"base_url": "https://SYNAPSE_SERVER_NAME"}}';
+        return 200 '{"m.homeserver": {"base_url": "https://matrix.SYNAPSE_SERVER_NAME"}}';
         add_header Content-Type application/json;
         add_header Access-Control-Allow-Origin *;
     }
     
+    # Optional: Root page message
+    location = / {
+        return 200 "Matrix server delegation active. Visit https://matrix.SYNAPSE_SERVER_NAME";
+        add_header Content-Type text/plain;
+    }
+    
+    # Redirect any other requests to the Matrix subdomain
+    location / {
+        return 301 https://matrix.SYNAPSE_SERVER_NAME$request_uri;
+    }
+}
+
+# Matrix subdomain server - the actual Matrix server (port 80)
+server {
+    listen 80;
+    listen [::]:80;
+    server_name matrix.SYNAPSE_SERVER_NAME;
+    
+    # Trust Cloudflare's forwarded headers for real client IPs
+    real_ip_header CF-Connecting-IP;
+    # CLOUDFLARE_IPS_PLACEHOLDER
+    
     # Root page - you can serve something else here
     location = / {
-        return 200 "Welcome to SYNAPSE_SERVER_NAME";
+        return 200 "Welcome to matrix.SYNAPSE_SERVER_NAME";
         add_header Content-Type text/plain;
     }
     
@@ -100,11 +123,11 @@ server {
     }
 }
 
-# Federation server (port 8448)
+# Federation server (port 8448) - on subdomain
 server {
     listen 8448 ssl http2;
     listen [::]:8448 ssl http2;
-    server_name SYNAPSE_SERVER_NAME;
+    server_name matrix.SYNAPSE_SERVER_NAME;
     
     # Self-signed certificate for Cloudflare Tunnel origin
     # Cloudflare Tunnel handles the public-facing SSL
@@ -127,3 +150,4 @@ server {
         proxy_read_timeout 900s;
     }
 }
+
