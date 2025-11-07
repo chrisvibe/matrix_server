@@ -6,3 +6,5 @@ element/element-config.json
 
 # SSL certificates
 nginx/ssl/
+
+**/notes.txt
