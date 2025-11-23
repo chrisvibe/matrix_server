@@ -19,10 +19,11 @@ services:
       start_period: 60s
       
   db:
-    image: postgres:18.1-alpine
+    image: postgres:17-alpine
     restart: unless-stopped
     volumes:
-      - synapse_db:/var/lib/postgresql/data
+      #- synapse_db:/var/lib/postgresql/data
+      - synapse_db:/var/lib/postgresql
     networks:
       - net 
     env_file:
