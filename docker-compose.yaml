@@ -1,6 +1,6 @@
 services:
   synapse:
-    image: docker.io/matrixdotorg/synapse:latest
+    image: docker.io/matrixdotorg/synapse:v1.142.1
     restart: unless-stopped
     volumes:
       - synapse_data:/data
@@ -19,24 +19,23 @@ services:
       start_period: 60s
       
   db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     volumes:
-      #- synapse_db:/var/lib/postgresql/data
       - synapse_db:/var/lib/postgresql
     networks:
       - net 
     env_file:
       - .env
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U synapse"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
       
   element:
-    image: vectorim/element-web:latest
+    image: vectorim/element-web:v1.12.4
     restart: unless-stopped
     volumes:
       - ./element/element-config.json:/app/config.json
@@ -47,7 +46,7 @@ services:
         condition: service_healthy
       
   nginx:
-    image: nginx:alpine
+    image: nginx:1.29-alpine
     restart: unless-stopped
     ports:
       - "${LOCAL_IP}:80:80"
