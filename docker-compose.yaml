@@ -1,6 +1,6 @@
 services:
   synapse:
-    image: docker.io/matrixdotorg/synapse:v1.142.1
+    image: docker.io/matrixdotorg/synapse:v1.144.0
     restart: unless-stopped
     volumes:
       - synapse_data:/data
@@ -19,7 +19,7 @@ services:
       start_period: 60s
       
   db:
-    image: postgres:18-alpine
+    image: postgres:18.1-alpine
     restart: unless-stopped
     volumes:
       - synapse_db:/var/lib/postgresql
@@ -35,7 +35,7 @@ services:
       start_period: 30s
       
   element:
-    image: vectorim/element-web:v1.12.4
+    image: vectorim/element-web:v1.12.6
     restart: unless-stopped
     volumes:
       - ./element/element-config.json:/app/config.json
@@ -46,7 +46,7 @@ services:
         condition: service_healthy
       
   nginx:
-    image: nginx:1.29-alpine
+    image: nginx:1.29.4-alpine
     restart: unless-stopped
     ports:
       - "${LOCAL_IP}:80:80"
@@ -68,6 +68,41 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Usage: docker compose run --rm backup-data
+  backup-data:
+    image: alpine:latest
+    profiles: ["backup"]
+    volumes:
+      - synapse_data:/data:ro
+      - ${BACKUP_DIR}:/backup
+    entrypoint: ["sh", "-c"]
+    command: 
+      - |
+        DATE=$$(date +%Y%m%d_%H%M%S)
+        tar czf /backup/synapse_data_$${DATE}.tar.gz -C /data .
+        echo "✅ Backup complete: synapse_data_$${DATE}.tar.gz"
+    networks:
+      - net
+
+  # Usage: docker compose run --rm backup-db
+  backup-db:
+    image: postgres:18-alpine
+    profiles: ["backup"]
+    volumes:
+      - ${BACKUP_DIR}:/backup
+    environment:
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        DATE=$$(date +%Y%m%d_%H%M%S)
+        pg_dump -h db -U ${POSTGRES_USER} ${POSTGRES_DB} | gzip > /backup/synapse_db_$${DATE}.sql.gz
+        echo "✅ Database backup complete: synapse_db_$${DATE}.sql.gz"
+    networks:
+      - net
+    depends_on:
+      - db
 
 networks:
   net:
