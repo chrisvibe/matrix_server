@@ -35,7 +35,7 @@ services:
       start_period: 30s
       
   element:
-    image: vectorim/element-web:v1.12.6
+    image: vectorim/element-web:v1.12.7
     restart: unless-stopped
     volumes:
       - ./element/element-config.json:/app/config.json
