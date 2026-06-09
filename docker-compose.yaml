@@ -17,14 +17,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-      
+
   db:
     image: postgres:18.1-alpine
     restart: unless-stopped
     volumes:
       - synapse_db:/var/lib/postgresql
     networks:
-      - net 
+      - net
     env_file:
       - .env
     healthcheck:
@@ -33,7 +33,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-      
+
   element:
     image: vectorim/element-web:v1.12.10
     restart: unless-stopped
@@ -44,7 +44,7 @@ services:
     depends_on:
       synapse:
         condition: service_healthy
-      
+
   nginx:
     image: nginx:1.29.5-alpine
     restart: unless-stopped
@@ -69,40 +69,44 @@ services:
       timeout: 10s
       retries: 3
 
-  # Usage: docker compose run --rm backup-data
-  backup-data:
-    image: alpine:latest
-    profiles: ["backup"]
-    volumes:
-      - synapse_data:/data:ro
-      - ${BACKUP_DIR}:/backup
-    entrypoint: ["sh", "-c"]
-    command: 
-      - |
-        DATE=$$(date +%Y%m%d_%H%M%S)
-        tar czf /backup/synapse_data_$${DATE}.tar.gz -C /data .
-        echo "✅ Backup complete: synapse_data_$${DATE}.tar.gz"
-    networks:
-      - net
-
-  # Usage: docker compose run --rm backup-db
-  backup-db:
+  # Automated backup sidecar (standardized across services; see also services/parvis).
+  # Matrix has TWO datastores, so backup.sh runs both workers each cycle:
+  #   - synapse Postgres DB  -> matrix_db_*.dump     (restore with restore_db.sh)
+  #   - synapse_data volume  -> matrix_data_*.tar.gz (restore with restore_data.sh)
+  #     (media store + homeserver signing key + local config — none of which live in PG)
+  # Runs once at startup, then on BACKUP_CRON_SCHEDULE via dcron. Backups land on the
+  # matrix_backups volume (NAS-backed via overrides/matrix.override.yaml).
+  # Manual ops:
+  #   docker compose exec backup /scripts/backup.sh                  # back up now
+  #   docker compose exec backup ls -lh /backups/                    # list backups
+  #   docker compose exec backup /scripts/restore_db.sh   /backups/matrix_db_YYYY-MM-DD_HH-MM-SS.dump
+  #   docker compose exec backup /scripts/restore_data.sh /backups/matrix_data_YYYY-MM-DD_HH-MM-SS.tar.gz
+  #   (stop synapse before a data restore; restart synapse after either restore)
+  backup:
     image: postgres:18-alpine
-    profiles: ["backup"]
-    volumes:
-      - ${BACKUP_DIR}:/backup
+    container_name: matrix-backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      - PGPASSWORD=${POSTGRES_PASSWORD}
-    entrypoint: ["sh", "-c"]
-    command:
-      - |
-        DATE=$$(date +%Y%m%d_%H%M%S)
-        pg_dump -h db -U ${POSTGRES_USER} ${POSTGRES_DB} | gzip > /backup/synapse_db_$${DATE}.sql.gz
-        echo "✅ Database backup complete: synapse_db_$${DATE}.sql.gz"
+      - SERVICE_NAME=matrix
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - BACKUP_DIR=/backups
+      - DATA_DIR=/data
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
+      - BACKUP_CRON_SCHEDULE=${BACKUP_CRON_SCHEDULE:-0 3 * * *}
+    volumes:
+      - matrix_backups:/backups
+      - synapse_data:/data:ro
+      - ./scripts:/scripts:ro
+    command: ["sh", "/scripts/backup-entrypoint.sh"]
     networks:
       - net
-    depends_on:
-      - db
 
 networks:
   net:
@@ -119,3 +123,7 @@ volumes:
   synapse_db:
     external: true
     name: synapse_db
+  # Base: plain local volume so matrix runs standalone. The infra override swaps this
+  # to an NFS mount on the NAS (see overrides/matrix.override.yaml).
+  matrix_backups:
+    name: matrix_backups
