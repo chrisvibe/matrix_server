@@ -1,6 +1,6 @@
 services:
   synapse:
-    image: docker.io/matrixdotorg/synapse:v1.144.0
+    image: docker.io/matrixdotorg/synapse:v1.147.0
     restart: unless-stopped
     volumes:
       - synapse_data:/data
@@ -35,7 +35,7 @@ services:
       start_period: 30s
       
   element:
-    image: vectorim/element-web:v1.12.7
+    image: vectorim/element-web:v1.12.10
     restart: unless-stopped
     volumes:
       - ./element/element-config.json:/app/config.json
@@ -46,7 +46,7 @@ services:
         condition: service_healthy
       
   nginx:
-    image: nginx:1.29.4-alpine
+    image: nginx:1.29.5-alpine
     restart: unless-stopped
     ports:
       - "${LOCAL_IP}:80:80"
