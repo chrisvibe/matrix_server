@@ -10,6 +10,9 @@ POSTGRES_PASSWORD='CHANGE_THIS_TO_A_SECURE_PASSWORD' # fex openssl rand -base64 
 POSTGRES_HOST=db
 POSTGRES_INITDB_ARGS="--lc-collate=C --lc-ctype=C --encoding=UTF8" # change this to your preference
 
+# Postgres image tag - bumps the db service AND its backup sidecar together (kept identical via a YAML anchor).
+POSTGRES_VERSION=18.1-alpine
+
 # Admin tools script
 MATRIX_DOMAIN=${SYNAPSE_SERVER_NAME}
 MATRIX_SERVER=https://${SYNAPSE_SERVER_NAME}

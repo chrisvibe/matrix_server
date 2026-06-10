@@ -1,3 +1,5 @@
+x-postgres-image: &pg-image postgres:${POSTGRES_VERSION:-18.1-alpine}
+
 services:
   synapse:
     image: docker.io/matrixdotorg/synapse:v1.147.0
@@ -19,7 +21,7 @@ services:
       start_period: 60s
 
   db:
-    image: postgres:18.1-alpine
+    image: *pg-image
     restart: unless-stopped
     volumes:
       - synapse_db:/var/lib/postgresql
@@ -83,7 +85,7 @@ services:
   #   docker compose exec backup /scripts/restore_data.sh /backups/matrix_data_YYYY-MM-DD_HH-MM-SS.tar.gz
   #   (stop synapse before a data restore; restart synapse after either restore)
   backup:
-    image: postgres:18-alpine
+    image: *pg-image
     container_name: matrix-backup
     restart: unless-stopped
     depends_on:
